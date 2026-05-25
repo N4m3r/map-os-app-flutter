@@ -1,24 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:mapos_app/controllers/os/osController.dart';
+import 'package:mapos_app/controllers/chamados/chamadosController.dart';
 import 'package:mapos_app/widgets/bottom_nav_menu.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:mapos_app/pages/os/os_view_page.dart';
+import 'package:mapos_app/pages/chamados/chamados_view_page.dart';
+import 'package:mapos_app/pages/chamados/chamados_add_page.dart';
 import 'package:mapos_app/theme/app_colors.dart';
 import 'package:mapos_app/theme/app_status_colors.dart';
-import 'package:mapos_app/theme/app_spacing.dart';
 
-import 'os_add_page.dart';
-
-class OrdemServicoList extends StatefulWidget {
+class ChamadosList extends StatefulWidget {
   @override
-  _OrdemServicoListState createState() => _OrdemServicoListState();
+  _ChamadosListState createState() => _ChamadosListState();
 }
 
-class _OrdemServicoListState extends State<OrdemServicoList> {
+class _ChamadosListState extends State<ChamadosList> {
   final ScrollController _controller = ScrollController();
-  List<dynamic> OrdemServico = [];
-  List<dynamic> filteredOrdemServico = [];
+  List<dynamic> Chamados = [];
+  List<dynamic> filteredChamados = [];
   bool isLoading = false;
   int currentPage = 0;
   int _selectedIndex = 4;
@@ -27,18 +25,21 @@ class _OrdemServicoListState extends State<OrdemServicoList> {
   final List<int> perPageOptions = [10, 20, 100, 200];
   String searchQuery = "";
   String selectedStatus = "Todos";
-  final List<String> statusOptions = ["Todos", "Orçamento", "Aberto", "Faturado", "Negociação", "Em Andamento", "Finalizado", "Cancelado", "Aguardando Peças", "Aprovado"];
+  final List<String> statusOptions = [
+    "Todos", "Aberto", "Orçamento", "Negociação", "Aprovado",
+    "Aguardando Peças", "Em Andamento", "Finalizado", "Faturado", "Cancelado"
+  ];
   bool showFilters = false;
 
   @override
   void initState() {
     super.initState();
     _loadPerPagePreference();
-    _loadMoreOrdemServico();
+    _loadMoreChamados();
     _loadData();
     _controller.addListener(() {
       if (_controller.position.pixels == _controller.position.maxScrollExtent && !isLoading) {
-        _loadMoreOrdemServico();
+        _loadMoreChamados();
       }
     });
   }
@@ -53,47 +54,56 @@ class _OrdemServicoListState extends State<OrdemServicoList> {
   Future<void> _loadPerPagePreference() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      perPage = prefs.getInt('perPage') ?? 10;
+      perPage = prefs.getInt('perPageChamados') ?? 10;
     });
   }
 
   Future<void> _savePerPagePreference(int perPage) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('perPage', perPage);
+    await prefs.setInt('perPageChamados', perPage);
   }
 
-  Future<void> _loadMoreOrdemServico() async {
+  Future<void> _loadMoreChamados() async {
     if (!isLoading) {
       setState(() {
         isLoading = true;
       });
 
-      List<dynamic> newOrdemServico = await ControllerOs().getAllOrdemServico(currentPage, perPage);
+      List<dynamic> newChamados = await ControllerChamados().getAllChamados(currentPage, perPage);
       setState(() {
-        OrdemServico.addAll(newOrdemServico);
-        filteredOrdemServico = OrdemServico;
+        Chamados.addAll(newChamados);
+        filteredChamados = Chamados;
         currentPage++;
         isLoading = false;
       });
     }
   }
 
-  void _filterOrdemServico() {
+  void _filterChamados() {
     setState(() {
-      filteredOrdemServico = OrdemServico.where((ordem) {
-        final nomeClienteLower = ordem['nomeCliente'].toString().toLowerCase();
+      filteredChamados = Chamados.where((chamado) {
+        final nomeClienteLower = (chamado['nomeCliente'] ?? '').toString().toLowerCase();
         final searchQueryLower = searchQuery.toLowerCase();
-        final statusMatches = selectedStatus == "Todos" || ordem['status'] == selectedStatus;
+        final statusMatches = selectedStatus == "Todos" || chamado['status'] == selectedStatus;
         return nomeClienteLower.contains(searchQueryLower) && statusMatches;
       }).toList();
     });
+  }
+
+  Future<void> _refreshChamados() async {
+    setState(() {
+      Chamados.clear();
+      filteredChamados.clear();
+      currentPage = 0;
+    });
+    await _loadMoreChamados();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Ordens de Serviço'),
+        title: Text('Chamados'),
         actions: [
           Padding(
             padding: const EdgeInsets.all(8.0),
@@ -110,16 +120,16 @@ class _OrdemServicoListState extends State<OrdemServicoList> {
                   items: perPageOptions.map((int value) {
                     return DropdownMenuItem<int>(
                       value: value,
-                      child: Text('$value por página'),
+                      child: Text('$value por pagina'),
                     );
                   }).toList(),
                   onChanged: (int? newValue) {
                     setState(() {
                       perPage = newValue!;
-                      OrdemServico.clear();
+                      Chamados.clear();
                       currentPage = 0;
                       _savePerPagePreference(perPage);
-                      _loadMoreOrdemServico();
+                      _loadMoreChamados();
                     });
                   },
                   icon: Icon(Icons.arrow_drop_down, color: Colors.black),
@@ -140,11 +150,11 @@ class _OrdemServicoListState extends State<OrdemServicoList> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => AdicionarOsPage()),
-                    );
+                      MaterialPageRoute(builder: (context) => AdicionarChamadoPage()),
+                    ).then((_) => _refreshChamados());
                   },
                   icon: Icon(Icons.add),
-                  label: Text('Adicionar'),
+                  label: Text('Abrir Chamado'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
                     backgroundColor: AppColors.primary,
@@ -153,11 +163,7 @@ class _OrdemServicoListState extends State<OrdemServicoList> {
                 ),
                 OutlinedButton.icon(
                   onPressed: () {
-                    setState(() {
-                      OrdemServico.clear();
-                      currentPage = 0;
-                      _loadMoreOrdemServico();
-                    });
+                    _refreshChamados();
                   },
                   icon: Icon(Icons.refresh),
                   label: Text('Atualizar'),
@@ -192,13 +198,13 @@ class _OrdemServicoListState extends State<OrdemServicoList> {
                 children: [
                   TextField(
                     decoration: InputDecoration(
-                      labelText: 'Buscar por nome',
+                      labelText: 'Buscar por nome do cliente',
                       border: OutlineInputBorder(),
                     ),
                     onChanged: (value) {
                       setState(() {
                         searchQuery = value;
-                        _filterOrdemServico();
+                        _filterChamados();
                       });
                     },
                   ),
@@ -218,7 +224,7 @@ class _OrdemServicoListState extends State<OrdemServicoList> {
                     onChanged: (String? newValue) {
                       setState(() {
                         selectedStatus = newValue!;
-                        _filterOrdemServico();
+                        _filterChamados();
                       });
                     },
                   ),
@@ -227,19 +233,32 @@ class _OrdemServicoListState extends State<OrdemServicoList> {
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              controller: _controller,
-              itemCount: filteredOrdemServico.length,
-              itemBuilder: (BuildContext context, int index) {
-                if (_isLoading) {
-                  return _buildShimmerEffect(context);
-                } else {
-                  return _buildCard(context, index);
-                }
-              },
+            child: RefreshIndicator(
+              onRefresh: _refreshChamados,
+              child: ListView.builder(
+                controller: _controller,
+                itemCount: filteredChamados.length,
+                itemBuilder: (BuildContext context, int index) {
+                  if (_isLoading) {
+                    return _buildShimmerEffect(context);
+                  } else {
+                    return _buildCard(context, index);
+                  }
+                },
+              ),
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AdicionarChamadoPage()),
+          ).then((_) => _refreshChamados());
+        },
+        backgroundColor: AppColors.primary,
+        child: Icon(Icons.add, color: Colors.white),
       ),
       bottomNavigationBar: BottomNavigationBarWidget(
         activeIndex: _selectedIndex,
@@ -278,31 +297,24 @@ class _OrdemServicoListState extends State<OrdemServicoList> {
   }
 
   Widget _buildCard(BuildContext context, int index) {
-    final ordem = filteredOrdemServico[index];
+    final chamado = filteredChamados[index];
+    final String status = chamado['status'] ?? '';
     return Card(
-      margin: AppSpacing.cardMargin,
+      margin: EdgeInsets.all(5.0),
       child: ListTile(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => VisualizarOrdemServicoPage(idOrdemServico: int.parse(ordem['idOs'].toString())),
-            ),
-          );
-        },
         leading: CircleAvatar(
           backgroundColor: AppColors.primary,
           child: Text(
-            ordem['idOs'].toString(),
+            chamado['idOs'].toString(),
             style: TextStyle(color: Colors.white),
           ),
         ),
         title: Text(
-          ordem['nomeCliente'],
+          chamado['nomeCliente'] ?? 'N/A',
           style: TextStyle(color: AppColors.textMuted),
         ),
         subtitle: Text(
-          ordem['celular_cliente'],
+          chamado['celular_cliente'] ?? '',
           style: TextStyle(color: Colors.grey),
         ),
         trailing: Row(
@@ -311,29 +323,24 @@ class _OrdemServicoListState extends State<OrdemServicoList> {
             Container(
               padding: EdgeInsets.symmetric(vertical: 2, horizontal: 8),
               decoration: BoxDecoration(
-                color: AppStatusColors.getStatusColor(ordem['status']),
-                borderRadius: BorderRadius.circular(12),
+                color: AppStatusColors.getStatusColor(status),
+                borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                ordem['status'],
+                status,
                 style: TextStyle(color: Colors.white, fontSize: 12),
               ),
             ),
-            SizedBox(width: 4),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.visibility, color: Colors.white, size: 14),
-                  SizedBox(width: 4),
-                  Text('Visualizar', style: TextStyle(color: Colors.white, fontSize: 11)),
-                ],
-              ),
+            IconButton(
+              icon: Icon(Icons.visibility, color: AppColors.primary),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => VisualizarChamadoPage(idChamado: int.parse(chamado['idOs'].toString())),
+                  ),
+                ).then((_) => _refreshChamados());
+              },
             ),
           ],
         ),
@@ -345,7 +352,6 @@ class _OrdemServicoListState extends State<OrdemServicoList> {
     setState(() {
       _selectedIndex = index;
     });
-    // depois penso nisso
   }
 
   @override

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:mapos_app/controllers/os/osController.dart';
-import 'package:mapos_app/pages/os/os_edit_page.dart';
+import 'package:mapos_app/controllers/chamados/chamadosController.dart';
+import 'package:mapos_app/pages/chamados/chamados_view_page.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,12 +11,12 @@ import 'package:mapos_app/theme/app_colors.dart';
 import 'package:mapos_app/theme/app_spacing.dart';
 import 'package:mapos_app/theme/app_typography.dart';
 
-class AdicionarOsPage extends StatefulWidget {
+class AdicionarChamadoPage extends StatefulWidget {
   @override
-  _AdicionarOsPageState createState() => _AdicionarOsPageState();
+  _AdicionarChamadoPageState createState() => _AdicionarChamadoPageState();
 }
 
-class _AdicionarOsPageState extends State<AdicionarOsPage> {
+class _AdicionarChamadoPageState extends State<AdicionarChamadoPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _descricaoController = TextEditingController();
   final TextEditingController _defeitoController = TextEditingController();
@@ -25,7 +25,7 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
   final TextEditingController _dataInicialController = TextEditingController();
   final TextEditingController _dataFinalController = TextEditingController();
 
-  final ControllerOs _osController = ControllerOs();
+  final ControllerChamados _chamadosController = ControllerChamados();
 
   String? _selectedClienteId;
   String? _selectedUsuarioId;
@@ -34,7 +34,7 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
   bool _isLoadingUsuarios = true;
   bool _isSubmitting = false;
 
-  // Debounce for client search
+  // Debounce + local filter for client search
   Timer? _debounce;
   List<dynamic> _allClientes = [];
   bool _isLoadingClientes = false;
@@ -81,7 +81,7 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
 
     // Then refresh from API
     try {
-      List<dynamic> usuarios = await _osController.getUsuarios();
+      List<dynamic> usuarios = await _chamadosController.getUsuarios();
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString('cached_usuarios', jsonEncode(usuarios));
       setState(() {
@@ -95,6 +95,7 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
       if (mounted && _usuarios.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+            behavior: SnackBarBehavior.floating,
             content: Text('Erro ao carregar tecnicos'),
             backgroundColor: Colors.red,
           ),
@@ -106,19 +107,12 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
   Future<void> _loadClientes() async {
     setState(() { _isLoadingClientes = true; });
     try {
-      _allClientes = await _osController.getClientes('');
+      _allClientes = await _chamadosController.getClientes('');
       debugPrint('Clientes carregados: ${_allClientes.length}');
     } catch (e) {
       debugPrint('Erro ao carregar clientes: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar clientes'), backgroundColor: Colors.orange),
-        );
-      }
     }
-    if (mounted) {
-      setState(() { _isLoadingClientes = false; });
-    }
+    setState(() { _isLoadingClientes = false; });
   }
 
   Future<List<dynamic>> _filterClientes(String pattern) async {
@@ -148,17 +142,17 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
     }
   }
 
-  Future<void> _submitOs() async {
+  Future<void> _submitChamado() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedClienteId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Selecione um cliente'), backgroundColor: Colors.red),
+        SnackBar(behavior: SnackBarBehavior.floating, content: Text('Selecione um cliente'), backgroundColor: Colors.red),
       );
       return;
     }
     if (_selectedUsuarioId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Selecione um tecnico'), backgroundColor: Colors.red),
+        SnackBar(behavior: SnackBarBehavior.floating, content: Text('Selecione um tecnico'), backgroundColor: Colors.red),
       );
       return;
     }
@@ -175,7 +169,7 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
         DateFormat('dd/MM/yyyy').parse(_dataFinalController.text),
       );
 
-      Map<String, dynamic> osData = {
+      Map<String, dynamic> chamadoData = {
         'dataInicial': dataInicial,
         'dataFinal': dataFinal,
         'status': _selectedStatus,
@@ -186,12 +180,13 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
         'observacoes': _observacoesController.text,
       };
 
-      var result = await _osController.addOs(osData);
+      var result = await _chamadosController.addChamado(chamadoData);
 
       if (result['status'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('OS aberta com sucesso!', style: TextStyle(color: Colors.white)),
+            behavior: SnackBarBehavior.floating,
+            content: Text('Chamado aberto com sucesso!', style: TextStyle(color: Colors.white)),
             backgroundColor: Colors.green,
           ),
         );
@@ -200,8 +195,8 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => EditarOsPage(
-                idOs: int.parse(result['result']['idOs'].toString()),
+              builder: (context) => VisualizarChamadoPage(
+                idChamado: int.parse(result['result']['idOs'].toString()),
               ),
             ),
           );
@@ -211,7 +206,8 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Falha ao abrir OS: ${result['message'] ?? 'Erro desconhecido'}'),
+            behavior: SnackBarBehavior.floating,
+            content: Text('Falha ao abrir chamado: ${result['message'] ?? 'Erro desconhecido'}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -219,7 +215,8 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro ao abrir OS: $e'),
+          behavior: SnackBarBehavior.floating,
+          content: Text('Erro ao abrir chamado: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -234,7 +231,7 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Abrir OS'),
+        title: Text('Abrir Chamado'),
         backgroundColor: AppColors.surface,
       ),
       body: SingleChildScrollView(
@@ -251,10 +248,10 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
                 children: <Widget>[
                   Row(
                     children: <Widget>[
-                      Icon(Icons.description, color: AppColors.primary, size: 28),
+                      Icon(Icons.headset_mic, color: AppColors.primary, size: 28),
                       SizedBox(width: 10),
                       Text(
-                        'Abrir Ordem de Servico',
+                        'Abrir Chamado',
                         style: AppTypography.h1Style(AppColors.primary),
                       ),
                     ],
@@ -275,7 +272,7 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
                           decoration: InputDecoration(
                             labelText: 'Cliente *',
                             hintText: 'Buscar por nome, CNPJ ou telefone...',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                             suffixIcon: _isLoadingClientes
                                 ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                                 : Icon(Icons.search),
@@ -348,7 +345,7 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
                       value: _selectedUsuarioId,
                       decoration: InputDecoration(
                         labelText: 'Tecnico *',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                         suffixIcon: _isLoadingUsuarios
                             ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                             : null,
@@ -381,7 +378,7 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
                       readOnly: true,
                       decoration: InputDecoration(
                         labelText: 'Data Inicial *',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                         suffixIcon: IconButton(
                           icon: Icon(Icons.calendar_today),
                           onPressed: () => _selectDate(_dataInicialController),
@@ -404,7 +401,7 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
                       readOnly: true,
                       decoration: InputDecoration(
                         labelText: 'Data Final *',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                         suffixIcon: IconButton(
                           icon: Icon(Icons.calendar_today),
                           onPressed: () => _selectDate(_dataFinalController),
@@ -426,7 +423,7 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
                       value: _selectedStatus,
                       decoration: InputDecoration(
                         labelText: 'Status *',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       items: _statusOptions.map<DropdownMenuItem<String>>((String value) {
                         return DropdownMenuItem<String>(
@@ -450,7 +447,7 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
                       maxLines: 3,
                       decoration: InputDecoration(
                         labelText: 'Descricao do Produto/Servico',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
                   ),
@@ -463,7 +460,7 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
                       maxLines: 3,
                       decoration: InputDecoration(
                         labelText: 'Defeito',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
                   ),
@@ -476,7 +473,7 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
                       maxLines: 3,
                       decoration: InputDecoration(
                         labelText: 'Observacoes',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
                   ),
@@ -487,7 +484,7 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
                       width: 350,
                       height: 56,
                       child: ElevatedButton(
-                        onPressed: _isSubmitting ? null : _submitOs,
+                        onPressed: _isSubmitting ? null : _submitChamado,
                         style: ElevatedButton.styleFrom(
                           foregroundColor: Colors.white,
                           backgroundColor: AppColors.primary,
@@ -497,7 +494,7 @@ class _AdicionarOsPageState extends State<AdicionarOsPage> {
                         ),
                         child: _isSubmitting
                             ? CircularProgressIndicator(color: Colors.white)
-                            : const Text('Abrir OS'),
+                            : const Text('Abrir Chamado'),
                       ),
                     ),
                   ),
