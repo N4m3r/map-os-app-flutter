@@ -10,6 +10,8 @@ import 'package:shimmer/shimmer.dart';
 import 'package:mapos_app/theme/app_colors.dart';
 import 'package:mapos_app/theme/app_spacing.dart';
 import 'package:mapos_app/theme/app_typography.dart';
+import 'package:mapos_app/pages/profile/profile_page.dart';
+import 'package:mapos_app/pages/settings/settings_page.dart';
 import '../about.dart';
 import 'dashboard_controller.dart';
 import 'package:http/http.dart' as http;
@@ -210,9 +212,13 @@ class _DashboardPageState extends State<DashboardPage> {
               onSelected: (value) {
                 switch (value) {
                   case 'perfil':
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => const ProfilePage()),
+                    );
+                    break;
                   case 'config':
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Esta seção ainda está em desenvolvimento.')),
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => const SettingsPage()),
                     );
                     break;
                   case 'Sobre':
@@ -226,58 +232,18 @@ class _DashboardPageState extends State<DashboardPage> {
                 }
               },
               itemBuilder: (context) => [
-                PopupMenuItem(
+                const PopupMenuItem(
                   value: 'perfil',
                   child: ListTile(
-                    leading: const Icon(Icons.person),
-                    title: Row(
-                      children: [
-                        const Text('Meu Perfil'),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.shade400,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'Em Breve',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    leading: Icon(Icons.person),
+                    title: Text('Meu Perfil'),
                   ),
                 ),
-                PopupMenuItem(
+                const PopupMenuItem(
                   value: 'config',
                   child: ListTile(
-                    leading: const Icon(Icons.settings),
-                    title: Row(
-                      children: [
-                        const Text('Configurações'),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.shade400,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'Em Breve',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    leading: Icon(Icons.settings),
+                    title: Text('Configurações'),
                   ),
                 ),
                 const PopupMenuItem(
