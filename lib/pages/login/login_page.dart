@@ -451,7 +451,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           const Text(
-                            'Felipe Santt & ',
+                            'Felipe Santt, ',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -475,6 +475,22 @@ class _LoginPageState extends State<LoginPage> {
                                 letterSpacing: 0.5,
 
                               ),
+                            ),
+                          const Text(
+                            ' & ',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const Text(
+                            'N4m3r',
+                            style: TextStyle(
+                              color: AppColors.accent,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ],
